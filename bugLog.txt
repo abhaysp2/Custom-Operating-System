@@ -1,0 +1,171 @@
+Bug Log:
+
+    - User: (name)
+    - Date: (date)
+    - Issue: (issue)
+    - Fix: (fix)
+
+    User: ALL
+    Date: 10/20
+    Issue: Triple Faulting
+    Fix: IDT was not completely initialized. Needed to SET_IDT_ENTRY for all interrupts in the table
+
+
+    User: ALL
+    Date: 10/21
+    Issue: Printing wrong chars for '1' and '2'
+    Fix: Turns out the right character was being pushed. A 1 was being printed when 1 was pushed.
+         A 2 was being printed when 2 was pushed. Although, an extraneous character was also printed.
+         This was not an error, but rather a character was being printed for the release of a key.
+         See two issues below.
+
+    User: All
+    Date: 10/21
+    Issue: Paging would crash immediately
+    Fix: Do not shift the address bits when writing the page directory base address to cr3
+
+    User: All
+    Date: 10/21
+    Issue: Keyboard interrupt prints character for push and for release.
+    Fix: Instead of reading and printing the scan code for a push and release,
+         just read it for a push. Did this by checking if response code was less
+         than 0x37 (0x00-0x36 are scan codes for 0-9 and a-z pushes)
+
+    User: mer5
+    Date: 10/26
+    Issue: Compiler returns with error: conflicting types for ‘file_close’ (and for open, read, write)
+    Fix: The return type for the declaration (in filesystem.h) was int32_t, but the implementation (in filesystem.c) was
+      uint32_t. -1 can be returned, so switched all uint32_t to int32_t.
+
+    User: mer5
+    Date: 10/26
+    Issue: Compiler returns with error: non-existing file "debug.sh"
+    Fix: Apparently, the debug.sh file in the mp3 folder was being renamed sometimes after running the bootimg executable.
+       It was being changed to some long, garbage name with characters and integers. I had to manually rename the file to
+       compile without any errors.
+
+    User: mer5
+    Date: 10/27
+    Issue: get_file_size helper function returning 0 instead of proper size
+    Fix: In the helper function, I was not initializing the address of the inode pointer properly. I calculated the address
+         by masking an inode_t struct to (boot block start + inode_index + 1). Instead, you must mask the inode_t struct to
+         only the start of the boot block, and then inode_index + 1 after.
+
+    User: mer5
+    Date: 10/27
+    Issue: read_dentry_by_name returning FAIL when receiving text file that is only part of full name
+          (i.e: verylargetextwithverylongname.txt is 33 characters and should fail. But verylargetextwithverylongname.tx is
+          only 32 characters and should NOT fail. Yet, it was failing.).
+    Fix: I was not setting the strncmp length properly. I was always setting it to the max number of characters in a filename.
+         Instead, I set it to that max value (32) only when the length of the name was 32. Otherwise, I set it to the length
+         of the name + 1.
+
+    User: ALL
+    Date: 11/09
+    Issue: When creating our fops jump table, we did not have uniform parameters for our open, close, read, and write
+           functions (across rtc, kb, file, dir).
+    Fix: Rather not a bug, but it took a while having to go back through our code and adjust every function to have
+         the same parameters. We had to ensure each function still performed properly after the parameters were changed.
+
+    User: ALL
+    Date: 11/10
+    Issue: The compiler was displaying the error: "comparison is always false due to limited range of data type", rooting
+           from the halt function.
+    Fix: The halt function takes in an unsigned, 8-bit integer called status. At the beginning of the function, our check would check
+         if status was between 0 and 255. The reason for this error is that an unsigned, 8-bit integer can never be less than 0 or
+         greater than 255. This error check was not needed in our code.
+
+    User: mer5
+    Date: 11/10
+    Issue: The call to read_data with a large data length in our execute function was causing a page fault.
+    Fix: There was an issue within the read_data function. When the size of the file is less than the data
+         length passed in, the data length must be decreased so it stays within the page size. This was checked
+         for within the function, but the issue was that we set the inode_block_loc_end before doing the prior check.
+         Making sure that the inode_block_loc_end was set after this check is what removed the page fault.
+
+   User: ALL
+   Date: 11/10
+   Issue: Another page fault that we were experiencing was in the write function in sys_call.c.
+   Fix: In the error checking, we were returning if the fd was less than 1. Though, we should return if fd
+        is less than 2, to account for stdin and stout. Changing this check to if(fd < 2) removed the fault.
+
+  User: ALL
+  Date: 11/10
+  Issue: Page fault coming from execute in sys_call.c.
+  Fix: When assigning the proper function to the fops jumptable for a given pcb block, we never assigned
+       the first two indices to be stdin and stdout (they always are). After adding these two fops, the page fault
+       went away.
+
+  User: ALL
+  Date: 11/11
+  Issue: Page fault occurring in read in sys_call.c.
+  Fix: The open sys_call was returning 0 to indicate success, when it should have returned the fd index. After changing this,
+       the read sys_call was indexing into the fd array properly and avoiding a page fault.
+
+  User: siyans2
+  Date: 11/11
+  Issue: boot looping after implementing halt syscall
+  Fix: Our halt was improperly checking if the current process was valid, as the bounds were too high. I lowered
+  the number so that all valid processes were viewed as valid and we were able to boot
+
+  User: mer5
+  Date: 11/11
+  Issue: file_read was looping infinitely when doing cat command in shell
+  Fix: The file position at the current pcb block was not being adjusted properly. I had created a local variable
+       within file_read for the file position at the current block, and changed this variable. Changing this to
+       the pcb pointer fixed this issue and cat only looped through a file once.
+
+  User: mer5
+  Date: 11/18
+  Issue: file_read was looping infinitely when doing cat command in shell
+  Fix: The file position at the current pcb block was not being adjusted properly. I had created a local variable
+       within file_read for the file position at the current block, and changed this variable. Changing this to
+       the pcb pointer fixed this issue and cat only looped through a file once.
+
+   User: ALL
+   Date: 11/18
+   Issue: page fault when trying to run a program within the second shell
+   Fix: The proper start address of the pcb block was not being properly maintained. It was always set to x800000,
+        instead of being 0x800000 + (4MB * num_processes). By adding a start_address variable to our pcb struct,
+        and updating it properly, we avoided the page fault.
+
+    User: mer5 + abhaysp2
+    Date: 12/3
+    Issue: OS would experience a page fault when a program with a higher PID number was the parent to a program with a lower PID number. (i.e. current program terminating has PID of 3 and is exiting to program with PID of 4)
+    Fix: In execute, we added a conditional that checked if the child had a lower PID than the parent. If so, we swapped their entire pcb blocks, including their PIDs, stack pointers,
+    start addresses, and arg bufs.
+
+    User: ALL
+    Date: 12/5
+    Issue: OS would experience a page fault when you exit from the base shell of one terminal,
+    and then move to a different terminal and run a program. The program would run fine but page fault upon halting.
+    Fix: We weren't able to come up with a fix. We had 5 different TAs look at it, and tested
+    PID values, stack and base pointers, and paging addresses. We did learn a lot about the OS'
+    behavior though - we noticed certain behaviors that prevented the fault. For instance,
+    exiting in one base shell and running a program in another terminal immediately after would
+    cause a page fault, but exiting in the second terminal before running the program would
+    avoid the fault.
+
+    User: ALL
+    Date: 12/6
+    Issue: In haulting, we were page faulting and could not determine the issue.
+    Fix: After checking the page addresses and determining that that was not the issue,
+    we realized that we were moving a base pointer into esp in our in-line assembly, and the same for our stack pointer into ebp. Fixing this mistake removed the page fault we were
+    running into.
+
+    User: ALL
+    Date: 12/8
+    Issue: Our init flag for scheduling was overflowing and causing our program to crash.
+    Fix: We did not make the variable unsigned, and ultimately it would become negative and
+    cause the page fault. Simply making it a uint8_t fixed the issue.
+
+
+    User: ALL
+    Date: 12/8
+    Issue: We were using way more than 3 pages directories after implementing scheduling.
+    This was seen by typing 'info mem' into the qemu system, and we saw nearly 50 lines
+    that represented 50 different directories.
+    Fix: We did a lot of gdb-ing through our code and could not determine the issue.
+    We noticed that there would be significant pages added (when typing 'info mem')
+    upon doing a random conditional statement that did not involve paging.
+    (i.e.: checking if curr_terminal.pid > 2). It would occur in random parts of our code.
