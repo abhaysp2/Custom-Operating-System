@@ -22,16 +22,15 @@
 * Side Effects: Interupts are now enabled
 */
 void pit_init(void){
-  // // printf("weewoo\n");
-  //   // outb(PIT_MODE_3, PIT_COMMAND_REG);           // Set int freq to 20HZ
-  //   outb(0x36, 0x43);           // Set int freq to 20HZ
+    outb(PIT_MODE_3, PIT_COMMAND_REG);           // Set int freq to 20HZ
+    outb(0x36, 0x43);           // Set int freq to 20HZ
   //
   //   //CHECK THE 20 HZ NUMBER
-  //   // outb(_20HZ & PIT_FREQ_MASK, PIT_CHAN_0);     // NOTE: 20 HZ may be too laggy
-  //   outb(20 & 0xFF, 0x40);     // NOTE: 20 HZ may be too laggy
+    outb(_20HZ & PIT_FREQ_MASK, PIT_CHAN_0);     // NOTE: 20 HZ may be too laggy
+    outb(20 & 0xFF, 0x40);     // NOTE: 20 HZ may be too laggy
   //
-  //   // outb(_20HZ >> FREQ_SHIFT, PIT_CHAN_0);       //
-  //   outb(20 >> 8, 0);       //
+    outb(_20HZ >> FREQ_SHIFT, PIT_CHAN_0);       //
+    outb(20 >> 8, 0);       //
   //
     cur_process_number = terminal[0].curr_pid;//curr->curr_pid;        // Get process Number of the next process to be executed
     next_process_number = 0;// terminal[1].curr_pid;//(process_number+1)%8;     // Next process number, increment 1, mod 8
